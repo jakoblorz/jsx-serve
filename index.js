@@ -190,10 +190,10 @@ const createInstance = function (_port, _host) {
 
     return {
         loadViewsFromDir: function (_viewDir) {
-            views = views.concat(_index.importViewDir(_viewDir));
+            views = views.concat(importViewDir(_viewDir));
         },
         listen: function (port, host) {
-            _index.createServer(views).listen(port || _port || 8080, host || _host || "localhost");
+            createServer(views).listen(port || _port || 8080, host || _host || "localhost");
         }
     }
 };
