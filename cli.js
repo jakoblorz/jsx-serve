@@ -1,5 +1,7 @@
 #! /usr/bin/env node
 
+const path = require("path");
+
 const _projectRoot = process.cwd() || __dirname;
 const _viewFolder = path.join(_projectRoot, process.argv[2] || "./views");
 const _port = parseInt(process.argv[3] || process.env.PORT || "8080");
