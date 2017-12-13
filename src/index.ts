@@ -1,9 +1,33 @@
-import {IJSXServeHandlerConfiguration, IJSXServeConfiguration, IJSXServeHandlerObject} from './types';
 import * as fs from "fs";
 import * as path from "path";
 
-export module JSXServeFileTools {
 
+export interface IJSXServeHandlerConfiguration {
+    file: string;
+    alias?: string;
+    method?: "GET" | "POST" | "PUT" | "DELETE";
+}
+
+export interface IJSXServeHandlerObject {
+    file: string;
+    method: "GET" | "POST" | "PUT" | "DELETE";
+    handler: Function;
+    args: string[];
+    path: string[];
+}
+
+export interface IJSXServeConfiguration {
+    defaults: {
+        host: string;
+        port: string;
+        mode: "strict" | "unstrict";
+    };
+
+    handlers: IJSXServeHandlerConfiguration[];
+}
+
+export module JSXServeFileTools {
+    
     export const parseJSXServeConfiguration = function (_configuration: any) {
     
         const parseJSXServeHandlerConfiguration = function (_hconfiguration: any) {
@@ -110,7 +134,7 @@ export module JSXServeFileTools {
          * @param {any[]} array list of already processed elements
          * @param {any | any[]} insertionVal value to append to the list of already processed elements
          */
-        const reduceMultiDimensionalArray = function (array: string[], insertionVal: string | string[]) {
+        const reduceMultiDimensionalArray = function (array: string[], insertionVal: string | string[]): string[] {
             if (insertionVal instanceof Array) {
                 return array.concat(insertionVal);
             }
@@ -119,8 +143,8 @@ export module JSXServeFileTools {
         };
 
         return fs.readdirSync(currentLevelDirPath)
-            .map(conditionalRecursionMap)
-            .reduce(reduceMultiDimensionalArray, []);
+            .map<string | string[]>(conditionalRecursionMap)
+            .reduce<string[]>(reduceMultiDimensionalArray, [] as string[]);
     };
 
     export const importViewDir = function (_folder: string, _config: IJSXServeConfiguration) {
@@ -144,14 +168,41 @@ export module JSXServeFileTools {
                 const targetFileArguments = extractFunctionArguments(targetFileImport);
                 const targetFileUrlPath = (((f) => f[0] === "/" ? f.slice(1) : f)(handlerConfiguration.alias || file))
                     .split("/");
-   
+    
                 return handlers.concat([{
                     file: file,
                     handler: targetFileImport,
                     args: targetFileArguments,
                     path: targetFileUrlPath,
-                    method: handlerConfiguration.method || "GET"
+                    method: (handlerConfiguration as IJSXServeHandlerConfiguration).method || "GET"
                 }]);
             }, [] as IJSXServeHandlerObject[]);
+    };
+}
+
+export module JSXServeServerTools {
+    
+    /**
+     * creates a filter function to filter all views that are registered at
+     * the url
+     * @param {string[]} urlPathArray list of url sections (split by /)
+     */
+    export const matchViewToPath = function (urlPathArray: string[]) {
+        return function (handler: IJSXServeHandlerObject) {
+            const handlerHasMatchingPathLengths = urlPathArray.length === handler.path.length;
+
+            // find matching path section -> possibly heavy as long
+            // paths could be filtered, thus in an own function
+            // which is only being invoked when handlerHasMatchingPathLengths
+            // is evaluated as true
+            const findMatchingPathSections = function () {
+                return urlPathArray.filter(function (currentPathSection, index) {
+                    handler.path[index] === currentPathSection;
+                });
+            };
+
+            return handlerHasMatchingPathLengths && findMatchingPathSections()
+                .length === urlPathArray.length;
+        }
     };
 }
