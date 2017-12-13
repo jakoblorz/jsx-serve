@@ -23,5 +23,16 @@
   "dependencies": {
     "js-yaml": "^3.10.0",
     "raw-body": "^2.3.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^21.1.8",
+    "@types/js-yaml": "^3.10.1",
+    "@types/node": "^8.5.0",
+    "@types/raw-body": "^2.3.0",
+    "gulp": "^3.9.1",
+    "gulp-sourcemaps": "^2.6.1",
+    "gulp-typescript": "^3.2.3",
+    "jest": "^21.2.1",
+    "typescript": "^2.6.2"
   }
 }
