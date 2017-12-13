@@ -1,89 +1,67 @@
+import {IJSXServeHandlerConfiguration, IJSXServeConfiguration, IJSXServeHandlerObject} from './types';
 import * as fs from "fs";
 import * as path from "path";
 
-export interface IJSXServeHandlerConfiguration {
-    file: string;
-    alias?: string;
-    method?: "GET" | "POST" | "PUT" | "DELETE";
-}
-
-export interface IJSXServeHandlerObject {
-    file: string;
-    method: "GET" | "POST" | "PUT" | "DELETE";
-    handler: Function;
-    args: string[];
-    path: string[];
-}
-
-export interface IJSXServeConfiguration {
-    defaults: {
-        host: string;
-        port: string;
-        mode: "strict" | "unstrict";
-    };
-
-    handlers: IJSXServeHandlerConfiguration[];
-}
-
-export const parseJSXServeConfiguration = function (_configuration: any) {
-
-    const parseJSXServeHandlerConfiguration = function (_hconfiguration: any) {
-        if (!_hconfiguration.file) {
-            throw new Error("Configuration Parsing Error: file is required");
-        }
-
-        if (!_hconfiguration.alias && _configuration.defaults.mode === "strict") {
-            throw new Error("Configuration Parsing Error: alias is required in strict mode");
-        }
-
-        const supportedMethods = ["POST", "PUT", "GET", "DELETE"];
-        if (_hconfiguration.method !== undefined && supportedMethods.indexOf(_hconfiguration.method) === -1) {
-            throw new Error("Configuration Parsing Error: method is not supported");
-        }
-
-        return {
-            file: _hconfiguration.file,
-            alias: _hconfiguration.alias,
-            method: _hconfiguration.method || "GET"
-        } as IJSXServeHandlerConfiguration;
-    };
-
-    return {
-        defaults: {
-            host: _configuration.defaults.host || "127.0.0.1",
-            mode: _configuration.defaults.mode || "strict",
-            port: _configuration.defaults.port || 8080,
-        },
-        handlers: (_configuration.handlers || []).map(parseJSXServeHandlerConfiguration)
-    } as IJSXServeConfiguration;
-};
-
-/**
- * get a list of the arguments of a function
- * @param {Function} fn function to extract the required arguments from
- */
-export const extractFunctionArguments = function (fn: () => void) {
-
-    const argumentMatchArray: string[] | null = (fn.toString()
-        .replace(/((\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s))/mg, "")
-        .match(/^function\s*[^\(]*\(\s*([^\)]*)\)/m));
-
-    if (argumentMatchArray === null) {
-        return [];
-    }
-
-    const unprocessedArgs = argumentMatchArray[1].split(/,/);
-
-    // regex edge case: when no args are specified, the regex will
-    // return an array with one element which is a empty string
-    if (unprocessedArgs.length === 1 && unprocessedArgs[0] === "") {
-        return [];
-    }
-
-    return unprocessedArgs;
-};
-
 export module JSXServeFileTools {
+
+    export const parseJSXServeConfiguration = function (_configuration: any) {
+    
+        const parseJSXServeHandlerConfiguration = function (_hconfiguration: any) {
+            if (!_hconfiguration.file) {
+                throw new Error("Configuration Parsing Error: file is required");
+            }
+    
+            if (!_hconfiguration.alias && _configuration.defaults.mode === "strict") {
+                throw new Error("Configuration Parsing Error: alias is required in strict mode");
+            }
+    
+            const supportedMethods = ["POST", "PUT", "GET", "DELETE"];
+            if (_hconfiguration.method !== undefined && supportedMethods.indexOf(_hconfiguration.method) === -1) {
+                throw new Error("Configuration Parsing Error: method is not supported");
+            }
+    
+            return {
+                file: _hconfiguration.file,
+                alias: _hconfiguration.alias,
+                method: _hconfiguration.method || "GET"
+            } as IJSXServeHandlerConfiguration;
+        };
+    
+        return {
+            defaults: {
+                host: _configuration.defaults.host || "127.0.0.1",
+                mode: _configuration.defaults.mode || "strict",
+                port: _configuration.defaults.port || 8080,
+            },
+            handlers: (_configuration.handlers || []).map(parseJSXServeHandlerConfiguration)
+        } as IJSXServeConfiguration;
+    };
+    
+    /**
+     * get a list of the arguments of a function
+     * @param {Function} fn function to extract the required arguments from
+     */
+    export const extractFunctionArguments = function (fn: () => void) {
+    
+        const argumentMatchArray: string[] | null = (fn.toString()
+            .replace(/((\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s))/mg, "")
+            .match(/^function\s*[^\(]*\(\s*([^\)]*)\)/m));
+    
+        if (argumentMatchArray === null) {
+            return [];
+        }
+    
+        const unprocessedArgs = argumentMatchArray[1].split(/,/);
+    
+        // regex edge case: when no args are specified, the regex will
+        // return an array with one element which is a empty string
+        if (unprocessedArgs.length === 1 && unprocessedArgs[0] === "") {
+            return [];
+        }
+    
+        return unprocessedArgs;
+    };
+        
 
     /**
      * check if a filename ends with an allowed extname

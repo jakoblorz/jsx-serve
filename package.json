@@ -7,7 +7,11 @@
     "jsx-serve": "cli.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean:dist": "rm -rf ./dist",
+    "test:dirty:no-debug": "node ./node_modules/jest/bin/jest.js --config jest.config.json",    
+    "test:clean:no-debug": "npm run clean:dist && gulp && node ./node_modules/jest/bin/jest.js --config jest.config.json",
+    "test:dirty:do-debug": "node --inspect-brk=5858 ./node_modules/jest/bin/jest.js --config jest.config.json",
+    "test:clean:do-debug": "npm run clean:dist && gulp && node --inspect-brk=5858 ./node_modules/jest/bin/jest.js --config jest.config.json"
   },
   "repository": {
     "type": "git",
