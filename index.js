@@ -4,6 +4,49 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const url = require("url");
+const yaml = require("js-yaml");
+
+const importYamlConfigurationFromFile = function (file) {
+    return yaml.safeLoad(fs.readFileSync(file));
+};
+module.exports.importYamlConfigurationFromFile = importYamlConfigurationFromFile;
+
+const parseConfigurationFromObject = function (config) {
+    
+    if (!config.defaults) {
+        config.defaults = {};
+    }
+
+    config.defaults = {
+        port: config.defaults.port || 8080,
+        host: config.defaults.host || "127.0.0.1",
+        mode: config.defaults.mode || "strict" // there are 2 mode: non-strict and strict
+    };
+
+    config.handlers = (config.handlers || []).map(function (hconf) {
+        if (!hconf.file) {
+            throw new Error("Configuration Parsing Error: file is required");
+        }
+
+        if (!hconf.alias && config.defaults.mode === "strict") {
+            throw new Error("Configuration Parsing Error: alias is required in strict mode");
+        }
+
+        const supportedMethods = ["POST", "PUT", "GET", "DELETE"];
+        if (hconf.method !== undefined && supportedMethods.indexOf(hconf.method) === -1) {
+            throw new Error("Configuration Parsing Error: method is not supported");
+        }
+
+        return {
+            file: hconf.file,
+            alias: hconf.alias,
+            method: hconf.method || "GET"
+        };
+    });
+
+    return config;
+};
+module.exports.parseConfigurationFromObject = parseConfigurationFromObject;
 
 /**
  * check if a filename ends with an allowed extname
@@ -125,19 +168,41 @@ const isPromise = function (val) {
     return typeof val === "object" && !!val.then && typeof val.then === 'function';
 }
 
-const importViewDir = function (_folder) {
+const importViewDir = function (_folder, _config = { default: { mode: "non-strict"}, handlers: [] }) {
     return readDirRecursive(_folder)
         .filter(filterFilePathByExtname([".js", ".jsx"]))
-        .map((file) => [file])
-        .map(arrayConcatOperation((file) => require(path.join(_folder, file)), 0))
-        .filter((arr) => typeof arr[1] === "function")
-        .map(arrayConcatOperation((fn) => extractFunctionArguments(fn), 1))
-        .map(arrayConcatOperation((file) => (file[0] === "/" ? file.slice(1) : file).split("/"), 0))
-        .map((array) => ({ file: array[0], handler: array[1], args: array[2], path: array[3] }));
+        .reduce((handlers, file) => {
+            
+            const handlerConfiguration = _config.handlers.filter(f => f.file === file)[0] || {};
+
+            // filter out the handler as no configuration is found when strict-mode is enabled
+            if (_config.defaults.mode === "strict-mode" && Object.keys(handlerConfiguration).length === 0) {
+                return handlers;
+            }
+
+            const targetFileImport = require(path.join(_folder, file));
+
+            if (typeof targetFileImport !== "function") {
+                return handlers;
+            }
+
+            const targetFileArguments = extractFunctionArguments(targetFileImport);
+            const targetFileUrlPath = (((f) => f[0] === "/" ? f.slice(1) : f)(handlerConfiguration.alias || file))
+                .split("/");
+
+            return handlers.concat([{
+                file: file,
+                handler: targetFileImport,
+                args: targetFileArguments,
+                path: targetFileUrlPath,
+                method: handlerConfiguration.method || "GET"
+            }]);
+        }, []);
 };
 module.exports.importViewDir = importViewDir;
 
 const createServer = function (_views) {
+    _views.forEach(v => console.log(v));
     return http.createServer((req, res) => {
         
         // prevent req.url === undefined errors
@@ -147,8 +212,9 @@ const createServer = function (_views) {
         const urlFullQualifiedPathSections = req.url.slice(1, ((index) =>
             index === -1 ? undefined : index)(req.url.indexOf("?"))).split("/");
     
-        // try to find a view that matches the url path-sections
-        const view = _views.filter(matchViewToPath(urlFullQualifiedPathSections))[0];
+        // try to find a view that matches the url path-sections adn the method
+        const view = _views.filter(matchViewToPath(urlFullQualifiedPathSections))
+            .filter(v => v.method === req.method)[0];
     
         // return an error if no view was found
         if (view === undefined) {
