@@ -10,7 +10,7 @@ import * as yaml from "js-yaml";
 
 const _handlerFolder = path.join(process.cwd() || __dirname, process.argv[2] || "./handlers");
 
-let configuration: IJSXServeConfiguration = { 
+let configuration: IJSXServeConfiguration = {
     defaults: {
         host: "127.0.0.1",
         mode: "unstrict",
