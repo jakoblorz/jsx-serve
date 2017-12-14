@@ -20,7 +20,7 @@ export module JSXServeServerTools {
             // is evaluated as true
             const findMatchingPathSections = function () {
                 return urlPathArray.filter(function (currentPathSection, index) {
-                    handler.path[index] === currentPathSection;
+                    return handler.path[index] === currentPathSection;
                 });
             };
 
@@ -57,6 +57,7 @@ export module JSXServeServerTools {
                 return undefined;
             })(requestUrl.indexOf("?"))).split("/");
 
+
             // search for a request handler which is hooked to the url of the request
             // and is featuring the correct HTTP method
             const requestMatchingHandler: IJSXServeHandlerObject | undefined = _handlers
@@ -72,18 +73,20 @@ export module JSXServeServerTools {
             }
 
             // build a handler argument array populated with the arguments from the query
-            const requestMatchingHandlerArguments = (function (queryStringArguments: any) {
+            const requestMatchingHandlerArguments = ((function (queryStringArguments: any) {
                 if (Object.keys(queryStringArguments).length === requestMatchingHandler.args.length) {
                     return requestMatchingHandler.args.map(function (argument: string) {
                         return queryStringArguments[argument];
                     });
                 }
-            })(url.parse(requestUrl, true).query);
+            })(url.parse(requestUrl, true).query) || []).filter(function (argument) {
+                return argument !== undefined;
+            });
 
             // if no arguments are required, the array can be undefined; but if arguments are required
             // and the argument array is still undefined, not enought argument were prominent in the
             // request
-            if (requestMatchingHandlerArguments === undefined && requestMatchingHandler.args.length > 0) {
+            if (requestMatchingHandler.args.length !== requestMatchingHandlerArguments.length) {
                 return response.end(JSON.stringify({ error: "not enought arguments provided" }));
             };
 

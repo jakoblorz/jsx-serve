@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "jsx-serve": "cli.js"
+    "jsx-serve": "dist/cli.js"
   },
   "scripts": {
     "clean:dist": "rm -rf ./dist",
